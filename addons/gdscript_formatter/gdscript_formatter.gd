@@ -50,7 +50,9 @@ func _enter_tree() -> void:
 		print_rich(
 			'[color=yellow]GDScript Formatter: the command "gdformat" can\'t be found in your envrionment.[/color]'
 		)
+	else:
 		_add_format_tool_item()
+
 	if not _has_command("pip"):
 		print_rich(
 			'[color=yellow]Installs gdtoolkit is required "pip".\n\t Please install it and ensure it can be found inyour envrionment.[/color]'
@@ -121,12 +123,12 @@ func format_script() -> bool:
 		text_edit.set_caret_line(line)
 		text_edit.set_caret_column(colume)
 		text_edit.center_viewport_to_caret()
-		DirAccess.remove_absolute(tmp_file)
-		return true
 	else:
 		printerr("Format GDScript failed: ", current_script.resource_path)
-		DirAccess.remove_absolute(tmp_file)
-		return false
+		printerr("\tExit code: ", err)
+
+	DirAccess.remove_absolute(tmp_file)
+	return err == OK
 
 
 func install_or_update_gdtoolkit() -> void:
