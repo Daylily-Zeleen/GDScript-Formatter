@@ -37,12 +37,28 @@ func _init() -> void:
 		script.source_code = """@tool
 extends Resource
 ## How many characters per line to allow.
-@export var line_length:=100
-## If trueWill skip safety checks.
-@export var fast_but_unsafe:=false
+@export var line_length := 100:
+	set(v):
+		line_length = v
+		emit_changed()
+
+## If true, will skip safety checks.
+@export var fast_but_unsafe := false:
+	set(v):
+		fast_but_unsafe = v
+		emit_changed()
+
+## If true, will format on save.
+@export var format_on_save := false:
+	set(v):
+		format_on_save = v
+		emit_changed()
 """
 		_preference.set_script(script)
 		ResourceSaver.save(_preference, preference_res_file)
+
+	_preference.changed.connect(_on_preference_changed)
+	_on_preference_changed()
 
 
 func _enter_tree() -> void:
@@ -93,42 +109,17 @@ func format_script() -> bool:
 	var current_script = EditorInterface.get_script_editor().get_current_script()
 	if not is_instance_valid(current_script) or not current_script is GDScript:
 		return false
-	var text_edit: CodeEdit = (
+	var code_edit: CodeEdit = (
 		EditorInterface.get_script_editor().get_current_editor().get_base_editor()
 	)
-	var line := text_edit.get_caret_line()
-	var colume := text_edit.get_caret_column()
 
-	text_edit.set_search_flags(1)
-	const tmp_file = "res://addons/gdscript_formatter/.tmp.gd"
-	var f = FileAccess.open(tmp_file, FileAccess.WRITE)
-	if not is_instance_valid(f):
-		printerr("GDScript Formatter Error: can't create tmp file.")
-		return false
-	f.store_string(text_edit.text)
-	f.close()
-
-	var output := []
-	var args := [
-		ProjectSettings.globalize_path(tmp_file), "--line-length=%d" % _preference.line_length
-	]
-	if _preference.fast_but_unsafe:
-		args.push_back("--fast")
-	var err = OS.execute("gdformat", args, output)
-
-	if err == OK:
-		f = FileAccess.open(tmp_file, FileAccess.READ)
-		text_edit.text = f.get_as_text()
-		f.close()
-		text_edit.set_caret_line(line)
-		text_edit.set_caret_column(colume)
-		text_edit.center_viewport_to_caret()
-	else:
+	var formatted := []
+	if not _format_code(code_edit.text, formatted):
 		printerr("Format GDScript failed: ", current_script.resource_path)
-		printerr("\tExit code: ", err)
+		return false
 
-	DirAccess.remove_absolute(tmp_file)
-	return err == OK
+	_reload_code_edit(code_edit, formatted.back())
+	return true
 
 
 func install_or_update_gdtoolkit() -> void:
@@ -177,6 +168,46 @@ func update_shortcut() -> void:
 	)
 
 
+#
+
+
+func _on_preference_changed() -> void:
+	if _preference.format_on_save and not resource_saved.is_connected(_on_resource_saved):
+		resource_saved.connect(_on_resource_saved)
+	elif not _preference.format_on_save and resource_saved.is_connected(_on_resource_saved):
+		resource_saved.disconnect(_on_resource_saved)
+
+
+func _on_resource_saved(resource: Resource) -> void:
+	var gds := resource as GDScript
+	if not _has_format_tool_item or not is_instance_valid(gds):
+		return
+
+	var script_editor := get_editor_interface().get_script_editor()
+	var open_script_editors := script_editor.get_open_script_editors()
+	var open_scripts := script_editor.get_open_scripts()
+
+	if open_scripts.size() != open_script_editors.size():
+		printerr("Format on save failed: due to engine bug. Please report an issue.")
+		return
+
+	var formatted := []
+	if not _format_code(gds.source_code, formatted):
+		printerr("Format GDScript failed: ", gds.resource_path)
+		return
+
+	gds.source_code = formatted.back()
+	ResourceSaver.save(gds)
+	gds.reload()
+
+	var code_edit: CodeEdit
+	for i in range(open_scripts.size()):
+		if open_scripts[i] == gds:
+			_reload_code_edit(open_script_editors[i].get_base_editor(), formatted.back(), true)
+			return
+
+
+#
 func _install_or_update_gdtoolkit():
 	var has_gdformat = _has_command("gdformat")
 	if has_gdformat:
@@ -209,4 +240,47 @@ func _add_format_tool_item() -> void:
 func _has_command(command: String) -> bool:
 	var output := []
 	var err := OS.execute(command, ["--version"], output)
+	return err == OK
+
+
+func _reload_code_edit(code_edit: CodeEdit, new_text: String, tag_saved: bool = false) -> void:
+	var column := code_edit.get_caret_column()
+	var line := code_edit.get_caret_line()
+	var scroll_hor := code_edit.scroll_horizontal
+	var scroll_ver := code_edit.scroll_vertical
+
+	code_edit.text = new_text
+	if tag_saved:
+		code_edit.tag_saved_version()
+
+	code_edit.set_caret_column(column)
+	code_edit.set_caret_line(line)
+	code_edit.scroll_horizontal = scroll_hor
+	code_edit.scroll_vertical = scroll_ver
+
+
+func _format_code(code: String, formated: Array) -> bool:
+	const tmp_file = "res://addons/gdscript_formatter/.tmp.gd"
+	var f = FileAccess.open(tmp_file, FileAccess.WRITE)
+	if not is_instance_valid(f):
+		printerr("GDScript Formatter Error: can't create tmp file.")
+		return false
+	f.store_string(code)
+	f.close()
+
+	var output := []
+	var args := [
+		ProjectSettings.globalize_path(tmp_file), "--line-length=%d" % _preference.line_length
+	]
+	if _preference.fast_but_unsafe:
+		args.push_back("--fast")
+	var err = OS.execute("gdformat", args, output)
+	if err == OK:
+		f = FileAccess.open(tmp_file, FileAccess.READ)
+		formated.push_back(f.get_as_text())
+		f.close()
+	else:
+		printerr("\tExit code: ", err)
+
+	DirAccess.remove_absolute(tmp_file)
 	return err == OK
