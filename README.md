@@ -11,8 +11,10 @@ An addons of Godot Editor(4.x) for formatting GDScript.
    - By shortcut, default is: Shift+Alt+F
    - By tool menue item: Project-> Tool-> GDScript Formatter: Format script
    - By Command palette: pop up cammand palette (default by Ctrl+Shift+P), and comfire command "Format GDScript".
+3. Format on save: default is disabled, turn on it by changing preference (refer below for more detail).
 4. Preference:
    You can modify **shortcut** and **formatting preference** by edit resources which are localed at "res://addons/gdscript_formatter/".
+
 
 
 ## Requirements:
