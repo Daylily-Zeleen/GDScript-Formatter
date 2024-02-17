@@ -180,15 +180,11 @@ func _on_preference_changed() -> void:
 
 func _on_resource_saved(resource: Resource) -> void:
 	var gds := resource as GDScript
-	if not _has_format_tool_item or not is_instance_valid(gds):
+
+	if resource == get_script():
 		return
 
-	var script_editor := get_editor_interface().get_script_editor()
-	var open_script_editors := script_editor.get_open_script_editors()
-	var open_scripts := script_editor.get_open_scripts()
-
-	if open_scripts.size() != open_script_editors.size():
-		printerr("Format on save failed: due to engine bug. Please report an issue.")
+	if not _has_format_tool_item or not is_instance_valid(gds):
 		return
 
 	var formatted := []
@@ -200,14 +196,28 @@ func _on_resource_saved(resource: Resource) -> void:
 	ResourceSaver.save(gds)
 	gds.reload()
 
-	var code_edit: CodeEdit
-	for i in range(open_scripts.size()):
-		if open_scripts[i] == gds:
-			_reload_code_edit(open_script_editors[i].get_base_editor(), formatted.back(), true)
-			return
+	var script_editor := get_editor_interface().get_script_editor()
+	var open_script_editors := script_editor.get_open_script_editors()
+	var open_scripts := script_editor.get_open_scripts()
+
+	if not open_scripts.has(gds):
+		return
+
+	if script_editor.get_current_script() == gds:
+		_reload_code_edit(
+			script_editor.get_current_editor().get_base_editor(), formatted.back(), true
+		)
+	elif open_scripts.size() == open_script_editors.size():
+		for i in range(open_scripts.size()):
+			if open_scripts[i] == gds:
+				_reload_code_edit(open_script_editors[i].get_base_editor(), formatted.back(), true)
+				return
+	else:
+		printerr(
+			"GDScript Formatter error: Unkonwn situation, can't reload code editor in Editor. Please repoert an issue."
+		)
 
 
-#
 func _install_or_update_gdtoolkit():
 	var has_gdformat = _has_command("gdformat")
 	if has_gdformat:
