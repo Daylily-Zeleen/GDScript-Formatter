@@ -4,8 +4,44 @@ extends EditorPlugin
 var _preference: Resource
 var _shortcut: Shortcut
 var _has_format_tool_item: bool = false
+var _has_install_update_tool_item: bool = false
 var _install_task_id: int = -1
 var _connection_list: Array[Resource] = []
+
+const _PREFERENCE_SCRIPT = """@tool
+extends Resource
+## How many characters per line to allow.
+@export var line_length := 100:
+	set(v):
+		line_length = v
+		emit_changed()
+
+## If true, will skip safety checks.
+@export var fast_but_unsafe := false:
+	set(v):
+		fast_but_unsafe = v
+		emit_changed()
+
+## If true, will format on save.
+@export var format_on_save := false:
+	set(v):
+		format_on_save = v
+		emit_changed()
+
+## The gdformat command to use in command line.
+## Default is "gdformat".
+@export var gdformat_command := "gdformat":
+	set(v):
+		gdformat_command = v
+		emit_changed()
+
+## The pip command to use in command line.
+## Default is "pip".
+@export var pip_command := "pip":
+	set(v):
+		pip_command = v
+		emit_changed()
+"""
 
 
 func _init() -> void:
@@ -29,58 +65,56 @@ func _init() -> void:
 	_shortcut.changed.connect(update_shortcut)
 
 	var preference_res_file = shortcur_res_file.get_base_dir().path_join("format_preference.tres")
-	if FileAccess.file_exists(preference_res_file):
-		_preference = load(preference_res_file)
-	if not is_instance_valid(_preference):
+	if not FileAccess.file_exists(preference_res_file):
 		_preference = Resource.new()
 		var script = GDScript.new()
-		script.source_code = """@tool
-extends Resource
-## How many characters per line to allow.
-@export var line_length := 100:
-	set(v):
-		line_length = v
-		emit_changed()
-
-## If true, will skip safety checks.
-@export var fast_but_unsafe := false:
-	set(v):
-		fast_but_unsafe = v
-		emit_changed()
-
-## If true, will format on save.
-@export var format_on_save := false:
-	set(v):
-		format_on_save = v
-		emit_changed()
-"""
+		script.source_code = _PREFERENCE_SCRIPT
 		_preference.set_script(script)
 		ResourceSaver.save(_preference, preference_res_file)
+
+	_preference = ResourceLoader.load(
+		preference_res_file, "", ResourceLoader.CACHE_MODE_IGNORE_DEEP
+	)
+
+	# Update script for plugin updating, then reload it.
+	(_preference.get_script() as GDScript).source_code = _PREFERENCE_SCRIPT
+	ResourceSaver.save(_preference, preference_res_file)
+	_preference = load(preference_res_file)
 
 	_preference.changed.connect(_on_preference_changed)
 	_on_preference_changed()
 
 
 func _enter_tree() -> void:
-	if not _has_command("gdformat"):
+	if not _has_command(_get_gdformat_command()):
 		print_rich(
-			'[color=yellow]GDScript Formatter: the command "gdformat" can\'t be found in your envrionment.[/color]'
+			(
+				'[color=yellow]GDScript Formatter: The command "%s" can\'t be found in your envrionment.[/color]'
+				% _get_gdformat_command()
+			)
 		)
 	else:
 		_add_format_tool_item()
-
-	if not _has_command("pip"):
-		print_rich(
-			'[color=yellow]Installs gdtoolkit is required "pip".\n\t Please install it and ensure it can be found inyour envrionment.[/color]'
+		EditorInterface.get_command_palette().add_command(
+			"Format GDScript",
+			"GDScript Formatter/Format GDScript",
+			Callable(self, "format_script"),
+			_shortcut.get_as_text()
 		)
-		return
-	EditorInterface.get_command_palette().add_command(
-		"Format GDScript",
-		"GDScript Formatter/Format GDScript",
-		Callable(self, "format_script"),
-		_shortcut.get_as_text()
-	)
-	add_tool_menu_item("GDScriptFormatter: Install/Update gdtoolkit", install_or_update_gdtoolkit)
+
+	if not _has_command(_get_pip_command()):
+		print_rich(
+			'[color=yellow]Installs gdtoolkit is required "%s".[/color]' % _get_pip_command()
+		)
+		print_rich(
+			"\t[color=yellow]Please install it and ensure it can be found in your envrionment.[/color]"
+		)
+	else:
+		add_tool_menu_item(
+			"GDScriptFormatter: Install/Update gdtoolkit", install_or_update_gdtoolkit
+		)
+		_has_install_update_tool_item = true
+
 	update_shortcut()
 
 
@@ -92,9 +126,10 @@ func _exit_tree() -> void:
 			"GDScript Formatter/Format GDScript",
 		)
 	)
-	remove_tool_menu_item("GDScriptFormatter: Install/Update gdtoolkit")
 	if _has_format_tool_item:
 		remove_tool_menu_item("GDScriptFormatter: Format script")
+	if _has_install_update_tool_item:
+		remove_tool_menu_item("GDScriptFormatter: Install/Update gdtoolkit")
 
 
 func _shortcut_input(event: InputEvent) -> void:
@@ -126,9 +161,12 @@ func install_or_update_gdtoolkit() -> void:
 	if _install_task_id >= 0:
 		print_rich("Already installing or updating gdformat, please be patient.")
 		return
-	if not _has_command("pip"):
+	if not _has_command(_get_pip_command()):
 		printerr(
-			"Install GDScript Formatter Failed: pip is required, please ensure it can be found in your environment."
+			(
+				'Install GDScript Formatter Failed: command "%s" is required, please ensure it can be found in your environment.'
+				% _get_pip_command()
+			)
 		)
 		return
 	_install_task_id = WorkerThreadPool.add_task(
@@ -147,7 +185,8 @@ func update_shortcut() -> void:
 
 	_connection_list.clear()
 
-	for event: InputEvent in _shortcut.events:
+	for event in _shortcut.events:
+		event = event as InputEvent
 		if is_instance_valid(event):
 			event.changed.connect(update_shortcut)
 			_connection_list.push_back(event)
@@ -163,12 +202,9 @@ func update_shortcut() -> void:
 	EditorInterface.get_command_palette().add_command(
 		"Format GDScript",
 		"GDScript Formatter/Format GDScript",
-		Callable(self, "format_script"),
+		format_script,
 		_shortcut.get_as_text()
 	)
-
-
-#
 
 
 func _on_preference_changed() -> void:
@@ -219,13 +255,13 @@ func _on_resource_saved(resource: Resource) -> void:
 
 
 func _install_or_update_gdtoolkit():
-	var has_gdformat = _has_command("gdformat")
+	var has_gdformat = _has_command(_get_gdformat_command())
 	if has_gdformat:
 		print("-- Begin update gdtoolkit.")
 	else:
 		print("-- Begin install gdtoolkit.")
 	var output := []
-	var err := OS.execute("pip3", ["install", "gdtoolkit"], output)
+	var err := OS.execute(_get_pip_command(), ["install", "gdtoolkit"], output)
 	if err == OK:
 		if has_gdformat:
 			print("-- Update gdtoolkit successfully.")
@@ -284,7 +320,7 @@ func _format_code(code: String, formated: Array) -> bool:
 	]
 	if _preference.fast_but_unsafe:
 		args.push_back("--fast")
-	var err = OS.execute("gdformat", args, output)
+	var err = OS.execute(_get_gdformat_command(), args, output)
 	if err == OK:
 		f = FileAccess.open(tmp_file, FileAccess.READ)
 		formated.push_back(f.get_as_text())
@@ -294,3 +330,11 @@ func _format_code(code: String, formated: Array) -> bool:
 
 	DirAccess.remove_absolute(tmp_file)
 	return err == OK
+
+
+func _get_gdformat_command() -> String:
+	return _preference.gdformat_command
+
+
+func _get_pip_command() -> String:
+	return _preference.pip_command
