@@ -72,9 +72,7 @@ func _init() -> void:
 		_preference.set_script(script)
 		ResourceSaver.save(_preference, preference_res_file)
 
-	_preference = ResourceLoader.load(
-		preference_res_file, "", ResourceLoader.CACHE_MODE_IGNORE_DEEP
-	)
+	_preference = ResourceLoader.load(preference_res_file, "", ResourceLoader.CACHE_MODE_IGNORE)
 
 	# Update script for plugin updating, then reload it.
 	(_preference.get_script() as GDScript).source_code = _PREFERENCE_SCRIPT
