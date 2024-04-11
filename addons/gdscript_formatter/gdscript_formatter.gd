@@ -10,8 +10,9 @@ var _connection_list: Array[Resource] = []
 
 const _PREFERENCE_SCRIPT = """@tool
 extends Resource
+
 ## How many characters per line to allow.
-@export var line_length := 100:
+@export var line_length := 175:
 	set(v):
 		line_length = v
 		emit_changed()
@@ -45,12 +46,8 @@ extends Resource
 
 
 func _init() -> void:
-	var shortcur_res_file := (get_script() as Resource).resource_path.get_base_dir().path_join(
-		"format_shortcut.tres"
-	)
-	if FileAccess.file_exists(shortcur_res_file):
-		_shortcut = load(shortcur_res_file)
-	if not is_instance_valid(_shortcut):
+	var shortcur_res_file := (get_script() as Resource).resource_path.get_base_dir().path_join("format_shortcut.tres")
+	if not FileAccess.file_exists(shortcur_res_file):
 		var default_shortcut := InputEventKey.new()
 		default_shortcut.echo = false
 		default_shortcut.pressed = true
@@ -58,11 +55,10 @@ func _init() -> void:
 		default_shortcut.shift_pressed = true
 		default_shortcut.alt_pressed = true
 
-		_shortcut = Shortcut.new()
-		_shortcut.events.push_back(default_shortcut)
-		ResourceSaver.save(_shortcut, shortcur_res_file)
-
-	_shortcut.changed.connect(update_shortcut)
+		var shortcut = Shortcut.new()
+		shortcut.events.push_back(default_shortcut)
+		ResourceSaver.save(shortcut, shortcur_res_file)
+	_shortcut = load(shortcur_res_file)
 
 	var preference_res_file = shortcur_res_file.get_base_dir().path_join("format_preference.tres")
 	if not FileAccess.file_exists(preference_res_file):
@@ -79,38 +75,21 @@ func _init() -> void:
 	ResourceSaver.save(_preference, preference_res_file)
 	_preference = load(preference_res_file)
 
-	_preference.changed.connect(_on_preference_changed)
-	_on_preference_changed()
+	resource_saved.connect(_on_resource_saved)
 
 
 func _enter_tree() -> void:
 	if not _has_command(_get_gdformat_command()):
-		print_rich(
-			(
-				'[color=yellow]GDScript Formatter: The command "%s" can\'t be found in your envrionment.[/color]'
-				% _get_gdformat_command()
-			)
-		)
+		print_rich('[color=yellow]GDScript Formatter: The command "%s" can\'t be found in your envrionment.[/color]' % _get_gdformat_command())
 	else:
 		_add_format_tool_item()
-		EditorInterface.get_command_palette().add_command(
-			"Format GDScript",
-			"GDScript Formatter/Format GDScript",
-			Callable(self, "format_script"),
-			_shortcut.get_as_text()
-		)
+		EditorInterface.get_command_palette().add_command("Format GDScript", "GDScript Formatter/Format GDScript", Callable(self, "format_script"), _shortcut.get_as_text())
 
 	if not _has_command(_get_pip_command()):
-		print_rich(
-			'[color=yellow]Installs gdtoolkit is required "%s".[/color]' % _get_pip_command()
-		)
-		print_rich(
-			"\t[color=yellow]Please install it and ensure it can be found in your envrionment.[/color]"
-		)
+		print_rich('[color=yellow]Installs gdtoolkit is required "%s".[/color]' % _get_pip_command())
+		print_rich("\t[color=yellow]Please install it and ensure it can be found in your envrionment.[/color]")
 	else:
-		add_tool_menu_item(
-			"GDScriptFormatter: Install/Update gdtoolkit", install_or_update_gdtoolkit
-		)
+		add_tool_menu_item("GDScriptFormatter: Install/Update gdtoolkit", install_or_update_gdtoolkit)
 		_has_install_update_tool_item = true
 
 	update_shortcut()
@@ -124,6 +103,7 @@ func _exit_tree() -> void:
 			"GDScript Formatter/Format GDScript",
 		)
 	)
+
 	if _has_format_tool_item:
 		remove_tool_menu_item("GDScriptFormatter: Format script")
 	if _has_install_update_tool_item:
@@ -142,9 +122,7 @@ func format_script() -> bool:
 	var current_script = EditorInterface.get_script_editor().get_current_script()
 	if not is_instance_valid(current_script) or not current_script is GDScript:
 		return false
-	var code_edit: CodeEdit = (
-		EditorInterface.get_script_editor().get_current_editor().get_base_editor()
-	)
+	var code_edit: CodeEdit = EditorInterface.get_script_editor().get_current_editor().get_base_editor()
 
 	var formatted := []
 	if not _format_code(code_edit.text, formatted):
@@ -160,16 +138,9 @@ func install_or_update_gdtoolkit() -> void:
 		print_rich("Already installing or updating gdformat, please be patient.")
 		return
 	if not _has_command(_get_pip_command()):
-		printerr(
-			(
-				'Install GDScript Formatter Failed: command "%s" is required, please ensure it can be found in your environment.'
-				% _get_pip_command()
-			)
-		)
+		printerr('Install GDScript Formatter Failed: command "%s" is required, please ensure it can be found in your environment.' % _get_pip_command())
 		return
-	_install_task_id = WorkerThreadPool.add_task(
-		_install_or_update_gdtoolkit, true, "Install or update gdtoolkit."
-	)
+	_install_task_id = WorkerThreadPool.add_task(_install_or_update_gdtoolkit, true, "Install or update gdtoolkit.")
 	while _install_task_id >= 0:
 		if not WorkerThreadPool.is_task_completed(_install_task_id):
 			await get_tree().process_frame
@@ -197,24 +168,27 @@ func update_shortcut() -> void:
 		)
 	)
 
-	EditorInterface.get_command_palette().add_command(
-		"Format GDScript",
-		"GDScript Formatter/Format GDScript",
-		format_script,
-		_shortcut.get_as_text()
-	)
-
-
-func _on_preference_changed() -> void:
-	if _preference.format_on_save and not resource_saved.is_connected(_on_resource_saved):
-		resource_saved.connect(_on_resource_saved)
-	elif not _preference.format_on_save and resource_saved.is_connected(_on_resource_saved):
-		resource_saved.disconnect(_on_resource_saved)
+	EditorInterface.get_command_palette().add_command("Format GDScript", "GDScript Formatter/Format GDScript", format_script, _shortcut.get_as_text())
 
 
 func _on_resource_saved(resource: Resource) -> void:
-	var gds := resource as GDScript
+	# Preference
+	var preference_path = (get_script() as Resource).resource_path.get_base_dir().path_join("format_preference.tres")
+	if resource.resource_path == preference_path:
+		_preference = load(preference_path)
+		return
 
+	# ShourtCut
+	var shortcut_path = (get_script() as Resource).resource_path.get_base_dir().path_join("format_shortcut.tres")
+	if resource.resource_path == preference_path:
+		_shortcut = load(shortcut_path)
+		return
+
+	# Format on save
+	if not _preference.format_on_save:
+		return
+
+	var gds := resource as GDScript
 	if resource == get_script():
 		return
 
@@ -238,18 +212,14 @@ func _on_resource_saved(resource: Resource) -> void:
 		return
 
 	if script_editor.get_current_script() == gds:
-		_reload_code_edit(
-			script_editor.get_current_editor().get_base_editor(), formatted.back(), true
-		)
+		_reload_code_edit(script_editor.get_current_editor().get_base_editor(), formatted.back(), true)
 	elif open_scripts.size() == open_script_editors.size():
 		for i in range(open_scripts.size()):
 			if open_scripts[i] == gds:
 				_reload_code_edit(open_script_editors[i].get_base_editor(), formatted.back(), true)
 				return
 	else:
-		printerr(
-			"GDScript Formatter error: Unkonwn situation, can't reload code editor in Editor. Please repoert an issue."
-		)
+		printerr("GDScript Formatter error: Unkonwn situation, can't reload code editor in Editor. Please repoert an issue.")
 
 
 func _install_or_update_gdtoolkit():
@@ -313,9 +283,7 @@ func _format_code(code: String, formated: Array) -> bool:
 	f.close()
 
 	var output := []
-	var args := [
-		ProjectSettings.globalize_path(tmp_file), "--line-length=%d" % _preference.line_length
-	]
+	var args := [ProjectSettings.globalize_path(tmp_file), "--line-length=%d" % _preference.line_length]
 	if _preference.fast_but_unsafe:
 		args.push_back("--fast")
 	var err = OS.execute(_get_gdformat_command(), args, output)
