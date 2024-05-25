@@ -82,8 +82,8 @@ func _enter_tree() -> void:
 	_add_format_tool_item_and_command()
 
 	if not _has_command(_get_pip_command()):
-		print_rich('[color=yellow]Installs gdtoolkit is required "%s".[/color]' % _get_pip_command())
-		print_rich("\t[color=yellow]Please install it and ensure it can be found in your envrionment.[/color]")
+		_print_warning('Installs gdtoolkit is required "%s".' % _get_pip_command())
+		_print_warning("\tPlease install it and ensure it can be found in your envrionment.")
 	else:
 		add_tool_menu_item("GDScriptFormatter: Install/Update gdtoolkit", install_or_update_gdtoolkit)
 		_has_install_update_tool_item = true
@@ -114,8 +114,7 @@ func format_script() -> bool:
 	var code_edit: CodeEdit = EditorInterface.get_script_editor().get_current_editor().get_base_editor()
 
 	var formatted := []
-	if not _format_code(code_edit.text, formatted):
-		printerr("Format GDScript failed: ", current_script.resource_path)
+	if not _format_code(current_script.resource_path, code_edit.text, formatted):
 		return false
 
 	_reload_code_edit(code_edit, formatted.back())
@@ -124,7 +123,7 @@ func format_script() -> bool:
 
 func install_or_update_gdtoolkit() -> void:
 	if _install_task_id >= 0:
-		print_rich("Already installing or updating gdformat, please be patient.")
+		_print_warning("Installing or updating gdformat, please be patient.")
 		return
 	if not _has_command(_get_pip_command()):
 		printerr('Install GDScript Formatter Failed: command "%s" is required, please ensure it can be found in your environment.' % _get_pip_command())
@@ -178,8 +177,7 @@ func _on_resource_saved(resource: Resource) -> void:
 		return
 
 	var formatted := []
-	if not _format_code(gds.source_code, formatted):
-		printerr("Format GDScript failed: ", gds.resource_path)
+	if not _format_code(gds.resource_path, gds.source_code, formatted):
 		return
 
 	gds.source_code = formatted.back()
@@ -232,11 +230,9 @@ func _add_format_tool_item_and_command() -> void:
 	if _has_format_tool_item:
 		return
 	if not _has_command(_get_gdformat_command()):
-		print_rich('[color=yellow]GDScript Formatter: The command "%s" can\'t be found in your envrionment.' % _get_gdformat_command())
-		print_rich('-- If you have not install "gdtoolkit", please install it first.')
-		print_rich(
-			'-- If you had installed "gdtoolkit", please change "gdformat_command" to be a valid command in "%s", and save this resource.[/color]' % _preference.resource_path
-		)
+		_print_warning('GDScript Formatter: The command "%s" can\'t be found in your envrionment.' % _get_gdformat_command())
+		_print_warning('\tIf have not install "gdtoolkit", install it first.')
+		_print_warning('\tIf had installed "gdtoolkit", change "gdformat_command" to a valid command in "%s", and save this resource.' % _preference.resource_path)
 		return
 	add_tool_menu_item("GDScriptFormatter: Format script", format_script)
 	EditorInterface.get_command_palette().add_command("Format GDScript", "GDScript Formatter/Format GDScript", format_script, _shortcut.get_as_text())
@@ -274,7 +270,7 @@ func _reload_code_edit(code_edit: CodeEdit, new_text: String, tag_saved: bool = 
 	code_edit.scroll_vertical = scroll_ver
 
 
-func _format_code(code: String, formated: Array) -> bool:
+func _format_code(script_path: String, code: String, formated: Array) -> bool:
 	const tmp_file = "res://addons/gdscript_formatter/.tmp.gd"
 	var f = FileAccess.open(tmp_file, FileAccess.WRITE)
 	if not is_instance_valid(f):
@@ -293,7 +289,9 @@ func _format_code(code: String, formated: Array) -> bool:
 		formated.push_back(f.get_as_text())
 		f.close()
 	else:
-		printerr("\tExit code: ", err, " Output: ", output.front())
+		printerr("Format GDScript failed: ", script_path)
+		printerr("\tExit code: ", err, " Output: ", output.front().strip_edges())
+		printerr('\tIf your script has not any syntax error, this error is led by limitations of "gdtoolkit", e.g. multiline lambda.')
 
 	DirAccess.remove_absolute(tmp_file)
 	return err == OK
@@ -305,3 +303,7 @@ func _get_gdformat_command() -> String:
 
 func _get_pip_command() -> String:
 	return _preference.pip_command
+
+
+func _print_warning(str: String) -> void:
+	print_rich("[color=orange]%s[/color]", str)
