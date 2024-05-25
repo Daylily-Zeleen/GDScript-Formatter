@@ -79,11 +79,7 @@ func _init() -> void:
 
 
 func _enter_tree() -> void:
-	if not _has_command(_get_gdformat_command()):
-		print_rich('[color=yellow]GDScript Formatter: The command "%s" can\'t be found in your envrionment.[/color]' % _get_gdformat_command())
-	else:
-		_add_format_tool_item()
-		EditorInterface.get_command_palette().add_command("Format GDScript", "GDScript Formatter/Format GDScript", Callable(self, "format_script"), _shortcut.get_as_text())
+	_add_format_tool_item_and_command()
 
 	if not _has_command(_get_pip_command()):
 		print_rich('[color=yellow]Installs gdtoolkit is required "%s".[/color]' % _get_pip_command())
@@ -96,21 +92,14 @@ func _enter_tree() -> void:
 
 
 func _exit_tree() -> void:
-	(
-		EditorInterface
-		. get_command_palette()
-		. remove_command(
-			"GDScript Formatter/Format GDScript",
-		)
-	)
-
-	if _has_format_tool_item:
-		remove_tool_menu_item("GDScriptFormatter: Format script")
+	_remove_format_tool_item_and_command()
 	if _has_install_update_tool_item:
 		remove_tool_menu_item("GDScriptFormatter: Install/Update gdtoolkit")
 
 
 func _shortcut_input(event: InputEvent) -> void:
+	if not _has_format_tool_item:
+		return
 	if _shortcut.matches_event(event) and event.is_pressed() and not event.is_echo():
 		if format_script():
 			get_tree().root.set_input_as_handled()
@@ -160,15 +149,8 @@ func update_shortcut() -> void:
 			event.changed.connect(update_shortcut)
 			_connection_list.push_back(event)
 
-	(
-		EditorInterface
-		. get_command_palette()
-		. remove_command(
-			"GDScript Formatter/Format GDScript",
-		)
-	)
-
-	EditorInterface.get_command_palette().add_command("Format GDScript", "GDScript Formatter/Format GDScript", format_script, _shortcut.get_as_text())
+	_remove_format_tool_item_and_command()
+	_add_format_tool_item_and_command()
 
 
 func _on_resource_saved(resource: Resource) -> void:
@@ -228,6 +210,7 @@ func _install_or_update_gdtoolkit():
 		print("-- Begin update gdtoolkit.")
 	else:
 		print("-- Begin install gdtoolkit.")
+
 	var output := []
 	var err := OS.execute(_get_pip_command(), ["install", "gdtoolkit"], output)
 	if err == OK:
@@ -235,8 +218,7 @@ func _install_or_update_gdtoolkit():
 			print("-- Update gdtoolkit successfully.")
 		else:
 			print("-- Install gdtoolkit successfully.")
-		if not _has_format_tool_item:
-			_add_format_tool_item()
+		_add_format_tool_item_and_command()
 	else:
 		if has_gdformat:
 			printerr("-- Update gdtoolkit failed, exit code: ", err)
@@ -246,14 +228,33 @@ func _install_or_update_gdtoolkit():
 		print("\n".join(output))
 
 
-func _add_format_tool_item() -> void:
+func _add_format_tool_item_and_command() -> void:
+	if _has_format_tool_item:
+		return
+	if not _has_command(_get_gdformat_command()):
+		print_rich('[color=yellow]GDScript Formatter: The command "%s" can\'t be found in your envrionment.' % _get_gdformat_command())
+		print_rich('-- If you have not install "gdtoolkit", please install it first.')
+		print_rich(
+			'-- If you had installed "gdtoolkit", please change "gdformat_command" to be a valid command in "%s", and save this resource.[/color]' % _preference.resource_path
+		)
+		return
 	add_tool_menu_item("GDScriptFormatter: Format script", format_script)
+	EditorInterface.get_command_palette().add_command("Format GDScript", "GDScript Formatter/Format GDScript", format_script, _shortcut.get_as_text())
 	_has_format_tool_item = true
+
+
+func _remove_format_tool_item_and_command() -> void:
+	if not _has_format_tool_item:
+		return
+	_has_format_tool_item = false
+	EditorInterface.get_command_palette().remove_command("GDScript Formatter/Format GDScript")
+	remove_tool_menu_item("GDScriptFormatter: Format script")
 
 
 func _has_command(command: String) -> bool:
 	var output := []
 	var err := OS.execute(command, ["--version"], output)
+
 	return err == OK
 
 
@@ -292,7 +293,7 @@ func _format_code(code: String, formated: Array) -> bool:
 		formated.push_back(f.get_as_text())
 		f.close()
 	else:
-		printerr("\tExit code: ", err)
+		printerr("\tExit code: ", err, " Output: ", output.front())
 
 	DirAccess.remove_absolute(tmp_file)
 	return err == OK
