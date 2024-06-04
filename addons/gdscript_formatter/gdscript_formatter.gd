@@ -29,14 +29,14 @@ extends Resource
 		format_on_save = v
 		emit_changed()
 
-## The gdformat command to use in command line.
+## The gdformat command to use on the command line.
 ## Default is "gdformat".
 @export var gdformat_command := "gdformat":
 	set(v):
 		gdformat_command = v
 		emit_changed()
 
-## The pip command to use in command line.
+## The pip command to use on the command line.
 ## Default is "pip".
 @export var pip_command := "pip":
 	set(v):
@@ -82,8 +82,8 @@ func _enter_tree() -> void:
 	_add_format_tool_item_and_command()
 
 	if not _has_command(_get_pip_command()):
-		_print_warning('Installs gdtoolkit is required "%s".' % _get_pip_command())
-		_print_warning("\tPlease install it and ensure it can be found in your envrionment.")
+		_print_warning('Installation of gdtoolkit is required "%s".' % _get_pip_command())
+		_print_warning("\tPlease install it and ensure it can be found in your environment.")
 	else:
 		add_tool_menu_item("GDScriptFormatter: Install/Update gdtoolkit", install_or_update_gdtoolkit)
 		_has_install_update_tool_item = true
@@ -126,7 +126,7 @@ func install_or_update_gdtoolkit() -> void:
 		_print_warning("Installing or updating gdformat, please be patient.")
 		return
 	if not _has_command(_get_pip_command()):
-		printerr('Install GDScript Formatter Failed: command "%s" is required, please ensure it can be found in your environment.' % _get_pip_command())
+		printerr('Installation of GDScript Formatter failed: Command "%s" is required, please ensure it can be found in your environment.' % _get_pip_command())
 		return
 	_install_task_id = WorkerThreadPool.add_task(_install_or_update_gdtoolkit, true, "Install or update gdtoolkit.")
 	while _install_task_id >= 0:
@@ -199,29 +199,29 @@ func _on_resource_saved(resource: Resource) -> void:
 				_reload_code_edit(open_script_editors[i].get_base_editor(), formatted.back(), true)
 				return
 	else:
-		printerr("GDScript Formatter error: Unkonwn situation, can't reload code editor in Editor. Please repoert an issue.")
+		printerr("GDScript Formatter error: Unknown situation, can't reload code editor in Editor. Please report this issue.")
 
 
 func _install_or_update_gdtoolkit():
 	var has_gdformat = _has_command(_get_gdformat_command())
 	if has_gdformat:
-		print("-- Begin update gdtoolkit.")
+		print("-- Beginning gdtoolkit update.")
 	else:
-		print("-- Begin install gdtoolkit.")
+		print("-- Beginning gdtoolkit installation.")
 
 	var output := []
 	var err := OS.execute(_get_pip_command(), ["install", "gdtoolkit"], output)
 	if err == OK:
 		if has_gdformat:
-			print("-- Update gdtoolkit successfully.")
+			print("-- Update of gdtoolkit successful.")
 		else:
-			print("-- Install gdtoolkit successfully.")
+			print("-- Installation of gdtoolkit successful.")
 		_add_format_tool_item_and_command()
 	else:
 		if has_gdformat:
-			printerr("-- Update gdtoolkit failed, exit code: ", err)
+			printerr("-- Update of gdtoolkit failed, exit code: ", err)
 		else:
-			printerr("-- Install gdtoolkit failed, exit code: ", err)
+			printerr("-- Installation of gdtoolkit failed, exit code: ", err)
 		printerr("\tPlease check below for more details.")
 		print("\n".join(output))
 
@@ -230,9 +230,9 @@ func _add_format_tool_item_and_command() -> void:
 	if _has_format_tool_item:
 		return
 	if not _has_command(_get_gdformat_command()):
-		_print_warning('GDScript Formatter: The command "%s" can\'t be found in your envrionment.' % _get_gdformat_command())
-		_print_warning('\tIf have not install "gdtoolkit", install it first.')
-		_print_warning('\tIf had installed "gdtoolkit", change "gdformat_command" to a valid command in "%s", and save this resource.' % _preference.resource_path)
+		_print_warning('GDScript Formatter: The command "%s" can\'t be found in your environment.' % _get_gdformat_command())
+		_print_warning('\tIf you have not installed "gdtoolkit", install it first.')
+		_print_warning('\tIf you have installed "gdtoolkit", change "gdformat_command" to a valid command in "%s", and save this resource.' % _preference.resource_path)
 		return
 	add_tool_menu_item("GDScriptFormatter: Format script", format_script)
 	EditorInterface.get_command_palette().add_command("Format GDScript", "GDScript Formatter/Format GDScript", format_script, _shortcut.get_as_text())
@@ -274,7 +274,7 @@ func _format_code(script_path: String, code: String, formated: Array) -> bool:
 	const tmp_file = "res://addons/gdscript_formatter/.tmp.gd"
 	var f = FileAccess.open(tmp_file, FileAccess.WRITE)
 	if not is_instance_valid(f):
-		printerr("GDScript Formatter Error: can't create tmp file.")
+		printerr("GDScript Formatter Error: Can't create tmp file.")
 		return false
 	f.store_string(code)
 	f.close()
@@ -291,7 +291,7 @@ func _format_code(script_path: String, code: String, formated: Array) -> bool:
 	else:
 		printerr("Format GDScript failed: ", script_path)
 		printerr("\tExit code: ", err, " Output: ", output.front().strip_edges())
-		printerr('\tIf your script has not any syntax error, this error is led by limitations of "gdtoolkit", e.g. multiline lambda.')
+		printerr('\tIf your script does not have any syntax errors, this error is led by limitations of "gdtoolkit", e.g. multiline lambda.')
 
 	DirAccess.remove_absolute(tmp_file)
 	return err == OK
