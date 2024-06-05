@@ -82,7 +82,7 @@ func _enter_tree() -> void:
 	_add_format_tool_item_and_command()
 
 	if not _has_command(_get_pip_command()):
-		_print_warning('Installation of gdtoolkit is required "%s".' % _get_pip_command())
+		_print_warning('"%s" is required for installating "gdtoolkit".' % _get_pip_command())
 		_print_warning("\tPlease install it and ensure it can be found in your environment.")
 	else:
 		add_tool_menu_item("GDScriptFormatter: Install/Update gdtoolkit", install_or_update_gdtoolkit)
