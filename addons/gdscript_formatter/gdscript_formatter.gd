@@ -1,79 +1,41 @@
 @tool
 extends EditorPlugin
 
-var _preference: Resource
-var _shortcut: Shortcut
+const _GDScriptFormatterPreference = preload("scripts/preference.gd")
+
+var _preference
 var _has_format_tool_item: bool = false
 var _has_install_update_tool_item: bool = false
 var _install_task_id: int = -1
 var _connection_list: Array[Resource] = []
 
-const _PREFERENCE_SCRIPT = """@tool
-extends Resource
-
-## How many characters per line to allow.
-@export var line_length := 175:
-	set(v):
-		line_length = v
-		emit_changed()
-
-## If true, will skip safety checks.
-@export var fast_but_unsafe := false:
-	set(v):
-		fast_but_unsafe = v
-		emit_changed()
-
-## If true, will format on save.
-@export var format_on_save := false:
-	set(v):
-		format_on_save = v
-		emit_changed()
-
-## The gdformat command to use on the command line.
-## Default is "gdformat".
-@export var gdformat_command := "gdformat":
-	set(v):
-		gdformat_command = v
-		emit_changed()
-
-## The pip command to use on the command line.
-## Default is "pip".
-@export var pip_command := "pip":
-	set(v):
-		pip_command = v
-		emit_changed()
-"""
-
 
 func _init() -> void:
-	var shortcur_res_file := (get_script() as Resource).resource_path.get_base_dir().path_join("format_shortcut.tres")
-	if not FileAccess.file_exists(shortcur_res_file):
-		var default_shortcut := InputEventKey.new()
-		default_shortcut.echo = false
-		default_shortcut.pressed = true
-		default_shortcut.keycode = KEY_F
-		default_shortcut.shift_pressed = true
-		default_shortcut.alt_pressed = true
-
-		var shortcut = Shortcut.new()
-		shortcut.events.push_back(default_shortcut)
-		ResourceSaver.save(shortcut, shortcur_res_file)
-	_shortcut = load(shortcur_res_file)
-
-	var preference_res_file = shortcur_res_file.get_base_dir().path_join("format_preference.tres")
+	var preference_res_file = (get_script() as Resource).resource_path.get_base_dir().path_join("format_preference.tres")
 	if not FileAccess.file_exists(preference_res_file):
-		_preference = Resource.new()
-		var script = GDScript.new()
-		script.source_code = _PREFERENCE_SCRIPT
-		_preference.set_script(script)
+		_preference = _GDScriptFormatterPreference.new()
 		ResourceSaver.save(_preference, preference_res_file)
 
 	_preference = ResourceLoader.load(preference_res_file, "", ResourceLoader.CACHE_MODE_IGNORE)
 
 	# Update script for plugin updating, then reload it.
-	(_preference.get_script() as GDScript).source_code = _PREFERENCE_SCRIPT
-	ResourceSaver.save(_preference, preference_res_file)
-	_preference = load(preference_res_file)
+	if _preference.script.resource_path != (_GDScriptFormatterPreference as Script).resource_path:
+		# Get old properies
+		var props = (_preference.get_script() as Script).get_script_property_list().filter(func(p): return p["usage"] & PROPERTY_USAGE_STORAGE != 0)
+		props = props.map(func(p): return {"name": p["name"], "value": _preference.get(p["name"])})
+		# Apply old properties
+		_preference = _GDScriptFormatterPreference.new()
+		for prop in props:
+			if prop["name"] in _preference:
+				_preference.set(prop["name"], prop["value"])
+		# Apply old shortcut if valid
+		var old_shortcut_file := (get_script() as Resource).resource_path.get_base_dir().path_join("format_shortcut.tres")
+		if FileAccess.file_exists(old_shortcut_file):
+			_preference.shortcut = load(old_shortcut_file).duplicate(true)
+			DirAccess.remove_absolute(old_shortcut_file)
+		# Save and reload.
+		ResourceSaver.save(_preference, preference_res_file)
+		_preference = load(preference_res_file)
 
 	resource_saved.connect(_on_resource_saved)
 
@@ -100,7 +62,10 @@ func _exit_tree() -> void:
 func _shortcut_input(event: InputEvent) -> void:
 	if not _has_format_tool_item:
 		return
-	if _shortcut.matches_event(event) and event.is_pressed() and not event.is_echo():
+	var shortcut = _get_shortcut()
+	if not is_instance_valid(shortcut):
+		return
+	if shortcut.matches_event(event) and event.is_pressed() and not event.is_echo():
 		if format_script():
 			get_tree().root.set_input_as_handled()
 
@@ -142,11 +107,13 @@ func update_shortcut() -> void:
 
 	_connection_list.clear()
 
-	for event in _shortcut.events:
-		event = event as InputEvent
-		if is_instance_valid(event):
-			event.changed.connect(update_shortcut)
-			_connection_list.push_back(event)
+	var shortcut = _get_shortcut()
+	if is_instance_valid(shortcut):
+		for event in shortcut.events:
+			event = event as InputEvent
+			if is_instance_valid(event):
+				event.changed.connect(update_shortcut)
+				_connection_list.push_back(event)
 
 	_remove_format_tool_item_and_command()
 	_add_format_tool_item_and_command()
@@ -157,12 +124,6 @@ func _on_resource_saved(resource: Resource) -> void:
 	var preference_path = (get_script() as Resource).resource_path.get_base_dir().path_join("format_preference.tres")
 	if resource.resource_path == preference_path:
 		_preference = load(preference_path)
-		return
-
-	# ShourtCut
-	var shortcut_path = (get_script() as Resource).resource_path.get_base_dir().path_join("format_shortcut.tres")
-	if resource.resource_path == preference_path:
-		_shortcut = load(shortcut_path)
 		return
 
 	# Format on save
@@ -235,7 +196,10 @@ func _add_format_tool_item_and_command() -> void:
 		_print_warning('\tIf you have installed "gdtoolkit", change "gdformat_command" to a valid command in "%s", and save this resource.' % _preference.resource_path)
 		return
 	add_tool_menu_item("GDScriptFormatter: Format script", format_script)
-	EditorInterface.get_command_palette().add_command("Format GDScript", "GDScript Formatter/Format GDScript", format_script, _shortcut.get_as_text())
+	var shortcut = _get_shortcut()
+	EditorInterface.get_command_palette().add_command(
+		"Format GDScript", "GDScript Formatter/Format GDScript", format_script, shortcut.get_as_text() if is_instance_valid(shortcut) else "None"
+	)
 	_has_format_tool_item = true
 
 
@@ -303,6 +267,10 @@ func _get_gdformat_command() -> String:
 
 func _get_pip_command() -> String:
 	return _preference.pip_command
+
+
+func _get_shortcut() -> Shortcut:
+	return _preference.shortcut
 
 
 func _print_warning(str: String) -> void:
