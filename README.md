@@ -40,3 +40,7 @@ A Godot Editor (4.x) addon for formatting GDScript automatically.
 ## Editing Preferences
 
 You can edit GDScript Formatter's behavior through the preferences file. Preferences are stored as a Godot resource located in `res://addons/gdscript_formatter/format_preference.tres`. Double click the file from Godot and you can change whether files are formatted on save, the gdformat command, line length, shorcut, and other values.
+
+## Others
+
+If this plugin can help you, please consider to [buy me a coffee](https://afdian.net/a/Daylily-Zeleen), I would try my best to release more plugins and maintain old plugins.

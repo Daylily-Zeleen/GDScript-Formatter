@@ -42,3 +42,7 @@ Click here to [English README](README.md).
 ## 偏好设置
 
 你可以通过编辑偏好设置文件修改**GDScript Formatter**的行为。偏好设置是一个资源，被保存于`res://addons/gdscript_formatter/format_preference.tres`。通过双击这个文件，可在检查器中更改设置，其中包括格式化时每行的最大长度，是否开启保存时自动格式化，快捷键，实际使用的pip命令，实际使用的gdformat命令等。**在修改后记得保存该资源文件**。
+
+## 其他
+
+如果这个插件能帮到你还请为我[充电](https://afdian.net/a/Daylily-Zeleen)，我也会尽力推出新的插件和维护老的插件。
