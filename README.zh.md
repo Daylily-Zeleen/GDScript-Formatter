@@ -23,7 +23,7 @@ Click here to [English README](README.md).
 
 **GDScript Formatter**依赖于[**GDToolkit**](https://github.com/Scony/godot-gdscript-toolkit)。如果你没有自行安装**GDToolKit**，可使用本插件**安装/更新GDToolkit**的功能，这需要你先自行安装**Pip**（通过安装**Python**获得），具体步骤如下：
 
-1. 安装Pythin（如果你没有安装的话）
+1. 安装Python（如果你没有安装的话）
    - 从 [https://www.python.org/downloads/] 下载Python安装包。
    - 确保在安装时开启了"**Add python.exe to PATH**"选项
      - 如果你忘记开启该选项，亦可[在安装之后将"python.exe"添加到PATH中](https://realpython.com/add-python-to-path/)

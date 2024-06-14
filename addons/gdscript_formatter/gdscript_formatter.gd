@@ -274,4 +274,4 @@ func _get_shortcut() -> Shortcut:
 
 
 func _print_warning(str: String) -> void:
-	print_rich("[color=orange]%s[/color]", str)
+	print_rich("[color=orange]%s[/color]" % str)
