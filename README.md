@@ -43,4 +43,4 @@ You can edit GDScript Formatter's behavior through the preferences file. Prefere
 
 ## Others
 
-If this plugin can help you, please consider to [buy me a coffee](https://afdian.net/a/Daylily-Zeleen), I would try my best to release more plugins and maintain old plugins.
+If this plugin can help you, please consider to [buy me a coffee](https://afdian.com/a/Daylily-Zeleen), I would try my best to release more plugins and maintain old plugins.

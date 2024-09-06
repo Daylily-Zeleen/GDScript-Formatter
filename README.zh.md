@@ -45,4 +45,4 @@ Click here to [English README](README.md).
 
 ## 其他
 
-如果这个插件能帮到你还请为我[充电](https://afdian.net/a/Daylily-Zeleen)，我也会尽力推出新的插件和维护老的插件。
+如果这个插件能帮到你还请为我[充电](https://afdian.com/a/Daylily-Zeleen)，我也会尽力推出新的插件和维护老的插件。
