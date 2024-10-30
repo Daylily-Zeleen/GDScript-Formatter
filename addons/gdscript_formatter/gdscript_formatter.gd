@@ -243,19 +243,67 @@ func _has_command(command: String) -> bool:
 
 
 func _reload_code_edit(code_edit: CodeEdit, new_text: String, tag_saved: bool = false) -> void:
-	var column := code_edit.get_caret_column()
-	var line := code_edit.get_caret_line()
+	var caret_column := code_edit.get_caret_column()
+	var caret_line := code_edit.get_caret_line()
 	var scroll_hor := code_edit.scroll_horizontal
 	var scroll_ver := code_edit.scroll_vertical
 
+	# Breakpoints
+	var breakpoints := _store_code_edit_info(code_edit.get_breakpointed_lines, code_edit.get_line)
+	# Bookmarks
+	var bookmarks := _store_code_edit_info(code_edit.get_bookmarked_lines, code_edit.get_line)
+	# Folds
+	var folds := _store_code_edit_info(code_edit.get_folded_lines, code_edit.get_line)
+
+	# New text
 	code_edit.text = new_text
 	if tag_saved:
 		code_edit.tag_saved_version()
 
-	code_edit.set_caret_column(column)
-	code_edit.set_caret_line(line)
+	var new_text_line_count := code_edit.get_line_count()
+	# Breakpoints
+	_restore_code_edit_info(breakpoints, code_edit.get_line, code_edit.set_line_as_breakpoint, new_text_line_count)
+	# Bookmarks
+	_restore_code_edit_info(bookmarks, code_edit.get_line, code_edit.set_line_as_bookmarked, new_text_line_count)
+	# Folds
+	_restore_code_edit_info(folds, code_edit.get_line, func(line: int, _1: bool) -> void: code_edit.fold_line(line), new_text_line_count)
+
+	code_edit.set_caret_column(caret_column)
+	code_edit.set_caret_line(caret_line)
 	code_edit.scroll_horizontal = scroll_hor
 	code_edit.scroll_vertical = scroll_ver
+
+	code_edit.update_minimum_size()
+
+
+func _store_code_edit_info(func_get_lines: Callable, func_get_line: Callable) -> Dictionary:
+	var ret := {}
+	for line in func_get_lines.call():
+		ret[line] = func_get_line.call(line)
+	return ret
+
+
+func _restore_code_edit_info(prev_data: Dictionary, func_get_line: Callable, func_set_line: Callable, new_text_line_count: int) -> void:
+	var prev_lines := PackedInt64Array(prev_data.keys())
+	for idx in range(prev_lines.size()):
+		var prev_line := prev_lines[idx] as int
+		var prev_text := prev_data[prev_line] as String
+
+		if func_get_line.call(prev_line).similarity(prev_text) > 0.9:
+			func_set_line.call(prev_line, true)
+
+		var up_line := prev_line - 1
+		var down_line := prev_line + 1
+		while up_line >= 0 or down_line < new_text_line_count:
+			if down_line < new_text_line_count and func_get_line.call(down_line).similarity(prev_text) > 0.9:
+				func_set_line.call(down_line, true)
+				break
+			if up_line >= 0 and func_get_line.call(up_line).similarity(prev_text) > 0.9:
+				func_set_line.call(up_line, true)
+				break
+
+			up_line -= 1
+			down_line += 1
 
 
 func _format_code(script_path: String, code: String, formated: Array) -> bool:
