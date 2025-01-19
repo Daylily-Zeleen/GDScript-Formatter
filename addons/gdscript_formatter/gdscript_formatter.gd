@@ -259,6 +259,7 @@ func _reload_code_edit(code_edit: CodeEdit, new_text: String, tag_saved: bool = 
 	code_edit.text = new_text
 	if tag_saved:
 		code_edit.tag_saved_version()
+		code_edit.text_changed.emit()
 
 	var new_text_line_count := code_edit.get_line_count()
 	# Breakpoints
