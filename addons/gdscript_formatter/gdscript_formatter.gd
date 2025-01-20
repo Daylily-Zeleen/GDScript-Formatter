@@ -275,6 +275,8 @@ func _reload_code_edit(code_edit: CodeEdit, new_text: String, tag_saved: bool = 
 
 	code_edit.update_minimum_size()
 
+	code_edit.text_changed.emit()
+
 
 func _store_code_edit_info(func_get_lines: Callable, func_get_line: Callable) -> Dictionary:
 	var ret := {}
