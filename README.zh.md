@@ -41,7 +41,8 @@ Click here to [English README](README.md).
 
 ## 偏好设置
 
-你可以通过编辑编辑器设置来修改**GDScript Formatter**的行为（**编辑器->通用->GDScript Formatter**）。其中包括格式化时每行的最大长度，是否开启保存时自动格式化，快捷键，实际使用的pip命令，实际使用的gdformat命令等。
+你可以通过编辑编辑器设置来修改**GDScript Formatter**的行为（**编辑器 -> 编辑器设置 -> 通用 -> GDScript Formatter**）。其中包括格式化时每行的最大长度，是否开启保存时自动格式化，快捷键，实际使用的pip命令，实际使用的gdformat命令等。
+如果你需要为特定项目设置不同的偏好设置，可以在项目设置中（**项目 -> 项目设置 -> 通用 -> GDScript Formatter**）勾选上`GDScript_Formatter/custom_settings_enabled`并调整其他设置。
 
 ## 其他
 

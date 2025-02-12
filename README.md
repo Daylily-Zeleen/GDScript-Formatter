@@ -39,7 +39,8 @@ A Godot Editor (4.x) addon for formatting GDScript automatically.
 
 ## Editing Preferences
 
-You can edit GDScript Formatter's behavior through the **Editor -> General -> GDScript Formatter**. You can change whether files are formatted on save, the gdformat command, line length, shortcut, and other values.
+You can edit GDScript Formatter's behavior through the **Editor -> Editor Settings -> General -> GDScript Formatter**. You can change whether files are formatted on save, the gdformat command, line length, shortcut, and other values.
+If you need to change preference for specific project, you can check `GDScript_Formatter/custom_settings_enabled` and modify settings in **Project -> Project Settings -> General -> GDScript Formatter**.
 
 ## Others
 
