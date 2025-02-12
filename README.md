@@ -13,7 +13,7 @@ A Godot Editor (4.x) addon for formatting GDScript automatically.
 - Format with **shortcut**
   - Defaults to **Shift+Alt+F**
 - Format on save
-  - Off by default, can be enabled by [editing the preferences file](#editing-preferences)
+  - Off by default, can be enabled by [editing the preferences in EditorSettings](#editing-preferences)
 - Format through **tool menu**
   - **Project -> Tool -> GDScript Formatter: Format script**
 - Format through **command palette**
@@ -35,11 +35,11 @@ A Godot Editor (4.x) addon for formatting GDScript automatically.
 3. Install GDToolkit
    - **Project -> Tool -> GDScript Formatter: Install/Update gdtoolkit**
 
-    **Note: if your python is not install for all users, you might need to change the command by [editing the preference file](# Editing Preferences)**
+    **Note: if your python is not install for all users, you might need to change the command by [editing the preference](# Editing Preferences)**
 
 ## Editing Preferences
 
-You can edit GDScript Formatter's behavior through the preferences file. Preferences are stored as a Godot resource located in `res://addons/gdscript_formatter/format_preference.tres`. Double click the file from Godot and you can change whether files are formatted on save, the gdformat command, line length, shorcut, and other values.
+You can edit GDScript Formatter's behavior through the **Editor -> General -> GDScript Formatter**. You can change whether files are formatted on save, the gdformat command, line length, shortcut, and other values.
 
 ## Others
 

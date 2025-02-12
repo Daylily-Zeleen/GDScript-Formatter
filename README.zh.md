@@ -13,7 +13,7 @@ Click here to [English README](README.md).
 - 使用**快捷键**进行脚本格式化
   - 默认快捷键为**Shift+Alt+F**
 - 保存脚本时自动格式化
-  - 默认关闭，通过[编辑偏好设置](#偏好设置)进行开启。
+  - 默认关闭，通过在编辑器设置中[编辑偏好设置](#偏好设置)进行开启。
 - 通过**工具菜单**进行格式化
   - **项目 -> 工具 -> GDScript Formatter: Format script**
 - 通过**命令面板**进行格式化
@@ -37,11 +37,11 @@ Click here to [English README](README.md).
 3. 安装GDToolkit
    - **项目 -> 工具 -> GDScript Formatter: Install/Update gdtoolkit**
 
-    **注意：如果你的Python仅为部分部分用户安装，可能需要前往[编辑偏好设置](#偏好设置)修改命令。**
+    **注意：如果你的Python仅为部分部分用户安装，可能需要前往编辑器设置来调整[偏好设置](#偏好设置)中的命令。**
 
 ## 偏好设置
 
-你可以通过编辑偏好设置文件修改**GDScript Formatter**的行为。偏好设置是一个资源，被保存于`res://addons/gdscript_formatter/format_preference.tres`。通过双击这个文件，可在检查器中更改设置，其中包括格式化时每行的最大长度，是否开启保存时自动格式化，快捷键，实际使用的pip命令，实际使用的gdformat命令等。**在修改后记得保存该资源文件**。
+你可以通过编辑编辑器设置来修改**GDScript Formatter**的行为（**编辑器->通用->GDScript Formatter**）。其中包括格式化时每行的最大长度，是否开启保存时自动格式化，快捷键，实际使用的pip命令，实际使用的gdformat命令等。
 
 ## 其他
 
