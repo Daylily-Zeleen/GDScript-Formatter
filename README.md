@@ -1,4 +1,4 @@
-![Static Badge](https://img.shields.io/badge/Godot-4.x-Blue)
+![Static Badge](https://img.shields.io/badge/Godot-4.x-blue?logo=godotengine&labelColor=white)
 
 # GDScript Formatter
 
