@@ -61,7 +61,7 @@ var _connection_list: Array[Resource] = []
 
 
 func _init() -> void:
-	var editor_settings := get_editor_interface().get_editor_settings()
+	var editor_settings := EditorInterface.get_editor_settings()
 	if not editor_settings.has_setting(SETTING_LINE_LENGTH):
 		editor_settings.set_setting(SETTING_LINE_LENGTH, 175)
 	if not editor_settings.has_setting(SETTING_FORMAT_ON_SAVE):
@@ -227,7 +227,7 @@ func update_shortcut() -> void:
 
 func _on_project_settings_changed() -> void:
 	var prev := _get_project_specific_settings().get(_SETTING_CUSTOM_SETTINGS_ENABLED, false) as bool
-	var curr := ProjectSettings.get_setting(_SETTING_CUSTOM_SETTINGS_ENABLED) if ProjectSettings.has_setting(_SETTING_CUSTOM_SETTINGS_ENABLED) else false
+	var curr := ProjectSettings.get_setting(_SETTING_CUSTOM_SETTINGS_ENABLED) as bool if ProjectSettings.has_setting(_SETTING_CUSTOM_SETTINGS_ENABLED) else false
 
 	var settings := _get_project_specific_settings()
 	if (
@@ -309,7 +309,7 @@ func _on_resource_saved(resource: Resource) -> void:
 	ResourceSaver.save(gds)
 	gds.reload()
 
-	var script_editor := get_editor_interface().get_script_editor()
+	var script_editor := EditorInterface.get_script_editor()
 	var open_script_editors := script_editor.get_open_script_editors()
 	var open_scripts := script_editor.get_open_scripts()
 
@@ -485,16 +485,16 @@ func _format_code(script_path: String, code: String, formated: Array) -> bool:
 
 
 func _get_gdformat_command() -> String:
-	return get_editor_interface().get_editor_settings().get_setting(SETTING_GDFORMAT_COMMAND)
+	return EditorInterface.get_editor_settings().get_setting(SETTING_GDFORMAT_COMMAND)
 
 
 func _get_pip_command() -> String:
-	return get_editor_interface().get_editor_settings().get_setting(SETTING_PIP_COMMAND)
+	return EditorInterface.get_editor_settings().get_setting(SETTING_PIP_COMMAND)
 
 
 func _get_shortcut() -> Shortcut:
-	return get_editor_interface().get_editor_settings().get_setting(SETTING_SHORTCUT)
+	return EditorInterface.get_editor_settings().get_setting(SETTING_SHORTCUT)
 
 
-func _print_warning(str: String) -> void:
-	print_rich("[color=orange]%s[/color]" % str)
+func _print_warning(message: String) -> void:
+	print_rich("[color=orange]%s[/color]" % message)
