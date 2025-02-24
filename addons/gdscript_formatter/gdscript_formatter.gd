@@ -51,8 +51,8 @@ const SETTING_GDFORMAT_COMMAND = "GDScript_Formatter/gdformat_command"
 ## 用于安装/更新gdformat而使用的pip命令，如果你的python/pip不是为所有用户安装时可能需要修改该选项。
 const SETTING_PIP_COMMAND = "GDScript_Formatter/pip_command"
 
-const _SETTING_CUSTOM_SETTINS_ENABLED = "GDScript_Formatter/custom_settings_enabled"
-const _PROJECT_SPEIFIC_SETTINGS = ".preference"
+const _SETTING_CUSTOM_SETTINGS_ENABLED = "GDScript_Formatter/custom_settings_enabled"
+const _PROJECT_SPECIFIC_SETTINGS = ".preference"
 
 var _has_format_tool_item: bool = false
 var _has_install_update_tool_item: bool = false
@@ -117,18 +117,18 @@ func _enter_tree() -> void:
 
 	# Add settings for project specific.
 	var settings := _get_project_specific_settings()
-	if not ProjectSettings.has_setting(_SETTING_CUSTOM_SETTINS_ENABLED):
-		ProjectSettings.set_setting(_SETTING_CUSTOM_SETTINS_ENABLED, settings.get(_SETTING_CUSTOM_SETTINS_ENABLED))
-		ProjectSettings.set_initial_value(_SETTING_CUSTOM_SETTINS_ENABLED, false)
+	if not ProjectSettings.has_setting(_SETTING_CUSTOM_SETTINGS_ENABLED):
+		ProjectSettings.set_setting(_SETTING_CUSTOM_SETTINGS_ENABLED, settings.get(_SETTING_CUSTOM_SETTINGS_ENABLED))
+		ProjectSettings.set_initial_value(_SETTING_CUSTOM_SETTINGS_ENABLED, false)
 
 	if not ProjectSettings.has_setting(SETTING_LINE_LENGTH):
 		ProjectSettings.set_setting(SETTING_LINE_LENGTH, settings.get(SETTING_LINE_LENGTH))
 		ProjectSettings.set_initial_value(SETTING_LINE_LENGTH, 175)
 	if not ProjectSettings.has_setting(SETTING_FORMAT_ON_SAVE):
-		ProjectSettings.set_setting(SETTING_FORMAT_ON_SAVE, settings.get(SETTING_LINE_LENGTH))
+		ProjectSettings.set_setting(SETTING_FORMAT_ON_SAVE, settings.get(SETTING_FORMAT_ON_SAVE))
 		ProjectSettings.set_initial_value(SETTING_FORMAT_ON_SAVE, false)
 	if not ProjectSettings.has_setting(SETTING_FAST_BUT_UNSAFE):
-		ProjectSettings.set_setting(SETTING_FAST_BUT_UNSAFE, settings.get(SETTING_LINE_LENGTH))
+		ProjectSettings.set_setting(SETTING_FAST_BUT_UNSAFE, settings.get(SETTING_FAST_BUT_UNSAFE))
 		ProjectSettings.set_initial_value(SETTING_FAST_BUT_UNSAFE, false)
 
 	ProjectSettings.settings_changed.connect(_on_project_settings_changed)
@@ -141,8 +141,8 @@ func _exit_tree() -> void:
 
 	ProjectSettings.settings_changed.disconnect(_on_project_settings_changed)
 	# Remove settings for project specific.
-	if ProjectSettings.has_setting(_SETTING_CUSTOM_SETTINS_ENABLED):
-		ProjectSettings.set_setting(_SETTING_CUSTOM_SETTINS_ENABLED, null)
+	if ProjectSettings.has_setting(_SETTING_CUSTOM_SETTINGS_ENABLED):
+		ProjectSettings.set_setting(_SETTING_CUSTOM_SETTINGS_ENABLED, null)
 	if ProjectSettings.has_setting(SETTING_LINE_LENGTH):
 		ProjectSettings.set_setting(SETTING_LINE_LENGTH, null)
 	if ProjectSettings.has_setting(SETTING_FORMAT_ON_SAVE):
@@ -226,8 +226,8 @@ func update_shortcut() -> void:
 
 
 func _on_project_settings_changed() -> void:
-	var prev := _get_project_specific_settings().get(_SETTING_CUSTOM_SETTINS_ENABLED, false) as bool
-	var curr := ProjectSettings.get_setting(_SETTING_CUSTOM_SETTINS_ENABLED) if ProjectSettings.has_setting(_SETTING_CUSTOM_SETTINS_ENABLED) else false
+	var prev := _get_project_specific_settings().get(_SETTING_CUSTOM_SETTINGS_ENABLED, false) as bool
+	var curr := ProjectSettings.get_setting(_SETTING_CUSTOM_SETTINGS_ENABLED) if ProjectSettings.has_setting(_SETTING_CUSTOM_SETTINGS_ENABLED) else false
 
 	var settings := _get_project_specific_settings()
 	if (
@@ -257,12 +257,12 @@ func _on_project_settings_changed() -> void:
 func _get_project_specific_settings() -> Dictionary:
 	var cfg := ConfigFile.new()
 
-	var cfg_file_path := (get_script() as Resource).resource_path.get_base_dir().path_join(_PROJECT_SPEIFIC_SETTINGS)
+	var cfg_file_path := (get_script() as Resource).resource_path.get_base_dir().path_join(_PROJECT_SPECIFIC_SETTINGS)
 	if FileAccess.file_exists(cfg_file_path):
 		cfg.load(cfg_file_path)
 
 	var ret := {}
-	ret[_SETTING_CUSTOM_SETTINS_ENABLED] = cfg.get_value("", _SETTING_CUSTOM_SETTINS_ENABLED, false)
+	ret[_SETTING_CUSTOM_SETTINGS_ENABLED] = cfg.get_value("", _SETTING_CUSTOM_SETTINGS_ENABLED, false)
 	ret[SETTING_LINE_LENGTH] = cfg.get_value("", SETTING_LINE_LENGTH, 175)
 	ret[SETTING_FORMAT_ON_SAVE] = cfg.get_value("", SETTING_FORMAT_ON_SAVE, false)
 	ret[SETTING_FAST_BUT_UNSAFE] = cfg.get_value("", SETTING_FAST_BUT_UNSAFE, false)
@@ -272,12 +272,12 @@ func _get_project_specific_settings() -> Dictionary:
 func _update_project_specific_settings() -> void:
 	var cfg := ConfigFile.new()
 
-	var cfg_file_path := (get_script() as Resource).resource_path.get_base_dir().path_join(_PROJECT_SPEIFIC_SETTINGS)
+	var cfg_file_path := (get_script() as Resource).resource_path.get_base_dir().path_join(_PROJECT_SPECIFIC_SETTINGS)
 	if FileAccess.file_exists(cfg_file_path):
 		cfg.load(cfg_file_path)
 
-	if ProjectSettings.has_setting(_SETTING_CUSTOM_SETTINS_ENABLED):
-		cfg.set_value("", _SETTING_CUSTOM_SETTINS_ENABLED, ProjectSettings.get_setting(_SETTING_CUSTOM_SETTINS_ENABLED))
+	if ProjectSettings.has_setting(_SETTING_CUSTOM_SETTINGS_ENABLED):
+		cfg.set_value("", _SETTING_CUSTOM_SETTINGS_ENABLED, ProjectSettings.get_setting(_SETTING_CUSTOM_SETTINGS_ENABLED))
 
 	if ProjectSettings.has_setting(SETTING_LINE_LENGTH):
 		cfg.set_value("", SETTING_LINE_LENGTH, ProjectSettings.get_setting(SETTING_LINE_LENGTH))
@@ -450,7 +450,7 @@ func _restore_code_edit_info(prev_data: Dictionary, func_get_line: Callable, fun
 
 func _get_setting(key: String) -> Variant:
 	var settings := _get_project_specific_settings()
-	if settings.get(_SETTING_CUSTOM_SETTINS_ENABLED):
+	if settings.get(_SETTING_CUSTOM_SETTINGS_ENABLED):
 		return settings.get(key)
 	var editor_settings := get_editor_interface().get_editor_settings()
 	if editor_settings.has_setting(key):
