@@ -452,10 +452,9 @@ func _get_setting(key: String) -> Variant:
 	var settings := _get_project_specific_settings()
 	if settings.get(_SETTING_CUSTOM_SETTINGS_ENABLED):
 		return settings.get(key)
-	var editor_settings := get_editor_interface().get_editor_settings()
-	if editor_settings.has_setting(key):
-		return editor_settings.get_setting(key)
-	return 175
+	var editor_settings := EditorInterface.get_editor_settings()
+	assert(editor_settings.has_setting(key), "Setting " + key + " is missing")
+	return editor_settings.get_setting(key)
 
 
 func _format_code(script_path: String, code: String, formated: Array) -> bool:
