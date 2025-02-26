@@ -28,10 +28,12 @@ extends EditorPlugin
 ## How many characters per line to allow.
 ## 每行允许的最大字符数量。
 const SETTING_LINE_LENGTH = "GDScript_Formatter/line_length"
+const DEFAULT_LINE_LENGTH = 175
 
 ## If true, will format on save.
 ## 如果开启，将在脚本保存时进行格式化。
 const SETTING_FORMAT_ON_SAVE = "GDScript_Formatter/format_on_save"
+const DEFAULT_FORMAT_ON_SAVE = false
 
 ## The shortcut for formatting script.
 ## Default is "Shift+Alt+F"。
@@ -42,14 +44,17 @@ const SETTING_SHORTCUT = "GDScript_Formatter/shortcut"
 ## If true, will skip safety checks.
 ## 如果开启，则跳过安全检查。
 const SETTING_FAST_BUT_UNSAFE = "GDScript_Formatter/fast_but_unsafe"
+const DEFAULT_FAST_BUT_UNSAFE = false
 
 ## The gdformat command to use on the command line, you might need to modify this option if the "gdformat" is not installed for all users.
 ## 用于格式化的gdformat命令，如果你的gdformat不是为所有用户安装时可能需要修改该选项。
 const SETTING_GDFORMAT_COMMAND = "GDScript_Formatter/gdformat_command"
+const DEFAULT_GDFORMAT_COMMAND = "gdformat"
 
 ## The pip command to use on the command line, you might need to modify this option if the "python/pip" is not installed for all users.
 ## 用于安装/更新gdformat而使用的pip命令，如果你的python/pip不是为所有用户安装时可能需要修改该选项。
 const SETTING_PIP_COMMAND = "GDScript_Formatter/pip_command"
+const DEFAULT_PIP_COMMAND = "pip"
 
 const _SETTING_CUSTOM_SETTINGS_ENABLED = "GDScript_Formatter/custom_settings_enabled"
 const _PROJECT_SPECIFIC_SETTINGS = ".preference"
@@ -63,17 +68,17 @@ var _connection_list: Array[Resource] = []
 func _init() -> void:
 	var editor_settings := _get_editor_interface().get_editor_settings()
 	if not editor_settings.has_setting(SETTING_LINE_LENGTH):
-		editor_settings.set_setting(SETTING_LINE_LENGTH, 175)
+		editor_settings.set_setting(SETTING_LINE_LENGTH, DEFAULT_LINE_LENGTH)
 	if not editor_settings.has_setting(SETTING_FORMAT_ON_SAVE):
-		editor_settings.set_setting(SETTING_FORMAT_ON_SAVE, false)
+		editor_settings.set_setting(SETTING_FORMAT_ON_SAVE, DEFAULT_FORMAT_ON_SAVE)
 	if not editor_settings.has_setting(SETTING_SHORTCUT):
 		editor_settings.set_setting(SETTING_SHORTCUT, _create_default_shortcut())
 	if not editor_settings.has_setting(SETTING_FAST_BUT_UNSAFE):
-		editor_settings.set_setting(SETTING_FAST_BUT_UNSAFE, false)
+		editor_settings.set_setting(SETTING_FAST_BUT_UNSAFE, DEFAULT_FAST_BUT_UNSAFE)
 	if not editor_settings.has_setting(SETTING_GDFORMAT_COMMAND):
-		editor_settings.set_setting(SETTING_GDFORMAT_COMMAND, "gdformat")
+		editor_settings.set_setting(SETTING_GDFORMAT_COMMAND, DEFAULT_GDFORMAT_COMMAND)
 	if not editor_settings.has_setting(SETTING_PIP_COMMAND):
-		editor_settings.set_setting(SETTING_PIP_COMMAND, "pip")
+		editor_settings.set_setting(SETTING_PIP_COMMAND, DEFAULT_PIP_COMMAND)
 
 	# For compatibility, load preference from "format_preference.tres".
 	var preference_res_file = (get_script() as Resource).resource_path.get_base_dir().path_join("format_preference.tres")
@@ -123,13 +128,13 @@ func _enter_tree() -> void:
 
 	if not ProjectSettings.has_setting(SETTING_LINE_LENGTH):
 		ProjectSettings.set_setting(SETTING_LINE_LENGTH, settings.get(SETTING_LINE_LENGTH))
-		ProjectSettings.set_initial_value(SETTING_LINE_LENGTH, 175)
+		ProjectSettings.set_initial_value(SETTING_LINE_LENGTH, DEFAULT_LINE_LENGTH)
 	if not ProjectSettings.has_setting(SETTING_FORMAT_ON_SAVE):
 		ProjectSettings.set_setting(SETTING_FORMAT_ON_SAVE, settings.get(SETTING_FORMAT_ON_SAVE))
-		ProjectSettings.set_initial_value(SETTING_FORMAT_ON_SAVE, false)
+		ProjectSettings.set_initial_value(SETTING_FORMAT_ON_SAVE, DEFAULT_FORMAT_ON_SAVE)
 	if not ProjectSettings.has_setting(SETTING_FAST_BUT_UNSAFE):
 		ProjectSettings.set_setting(SETTING_FAST_BUT_UNSAFE, settings.get(SETTING_FAST_BUT_UNSAFE))
-		ProjectSettings.set_initial_value(SETTING_FAST_BUT_UNSAFE, false)
+		ProjectSettings.set_initial_value(SETTING_FAST_BUT_UNSAFE, DEFAULT_FAST_BUT_UNSAFE)
 
 	project_settings_changed.connect(_on_project_settings_changed)
 
@@ -231,28 +236,25 @@ func _on_project_settings_changed() -> void:
 	var curr := ProjectSettings.get_setting(_SETTING_CUSTOM_SETTINGS_ENABLED) if ProjectSettings.has_setting(_SETTING_CUSTOM_SETTINGS_ENABLED) else false
 
 	var settings := _get_project_specific_settings()
-	if (
-		prev != curr
-		or (ProjectSettings.has_setting(SETTING_LINE_LENGTH) and ProjectSettings.get_setting(SETTING_LINE_LENGTH) != settings.get(SETTING_LINE_LENGTH))
-		or (ProjectSettings.has_setting(SETTING_FORMAT_ON_SAVE) and ProjectSettings.get_setting(SETTING_FORMAT_ON_SAVE) != settings.get(SETTING_FORMAT_ON_SAVE))
-		or (ProjectSettings.has_setting(SETTING_FAST_BUT_UNSAFE) and ProjectSettings.get_setting(SETTING_FAST_BUT_UNSAFE) != settings.get(SETTING_FAST_BUT_UNSAFE))
-	):
-		# Update settings.
+	# Update settings backup.
+	if prev != curr:
 		_update_project_specific_settings()
-
-	if prev == curr:
+	else:
+		var need_update := false
+		for setting in [SETTING_LINE_LENGTH, SETTING_FORMAT_ON_SAVE, SETTING_FAST_BUT_UNSAFE]:
+			if ProjectSettings.has_setting(setting):
+				var backup_value := settings.get(setting, null)
+				if backup_value == null or ProjectSettings.get_setting(setting) != backup_value:
+					_update_project_specific_settings()
 		return
 
 	if curr:
-		if not ProjectSettings.has_setting(SETTING_LINE_LENGTH):
-			ProjectSettings.set_setting(SETTING_LINE_LENGTH, settings.get(SETTING_LINE_LENGTH, 175))
-			ProjectSettings.set_initial_value(SETTING_LINE_LENGTH, 175)
-		if not ProjectSettings.has_setting(SETTING_FORMAT_ON_SAVE):
-			ProjectSettings.set_setting(SETTING_FORMAT_ON_SAVE, settings.get(SETTING_FORMAT_ON_SAVE, false))
-			ProjectSettings.set_initial_value(SETTING_FORMAT_ON_SAVE, false)
-		if not ProjectSettings.has_setting(SETTING_FAST_BUT_UNSAFE):
-			ProjectSettings.set_setting(SETTING_FAST_BUT_UNSAFE, settings.get(SETTING_FAST_BUT_UNSAFE, false))
-			ProjectSettings.set_initial_value(SETTING_FAST_BUT_UNSAFE, false)
+		for setting_key in PackedStringArray(["SETTING_LINE_LENGTH", "SETTING_FORMAT_ON_SAVE", "SETTING_FAST_BUT_UNSAFE"]):
+			var setting := get(setting_key) as String
+			if not ProjectSettings.has_setting(setting):
+				var default_value := get("DEFAULT" + setting_key.trim_prefix("SETTING"))
+				ProjectSettings.set_setting(setting, settings.get(setting, default_value))
+				ProjectSettings.set_initial_value(setting, default_value)
 
 
 func _get_project_specific_settings() -> Dictionary:
@@ -264,9 +266,9 @@ func _get_project_specific_settings() -> Dictionary:
 
 	var ret := {}
 	ret[_SETTING_CUSTOM_SETTINGS_ENABLED] = cfg.get_value("", _SETTING_CUSTOM_SETTINGS_ENABLED, false)
-	ret[SETTING_LINE_LENGTH] = cfg.get_value("", SETTING_LINE_LENGTH, 175)
-	ret[SETTING_FORMAT_ON_SAVE] = cfg.get_value("", SETTING_FORMAT_ON_SAVE, false)
-	ret[SETTING_FAST_BUT_UNSAFE] = cfg.get_value("", SETTING_FAST_BUT_UNSAFE, false)
+	ret[SETTING_LINE_LENGTH] = cfg.get_value("", SETTING_LINE_LENGTH, DEFAULT_LINE_LENGTH)
+	ret[SETTING_FORMAT_ON_SAVE] = cfg.get_value("", SETTING_FORMAT_ON_SAVE, DEFAULT_FORMAT_ON_SAVE)
+	ret[SETTING_FAST_BUT_UNSAFE] = cfg.get_value("", SETTING_FAST_BUT_UNSAFE, DEFAULT_FAST_BUT_UNSAFE)
 	return ret
 
 
@@ -292,7 +294,7 @@ func _update_project_specific_settings() -> void:
 
 func _on_resource_saved(resource: Resource) -> void:
 	# Format on save
-	if not _get_setting(SETTING_FORMAT_ON_SAVE):
+	if not _get_setting(SETTING_FORMAT_ON_SAVE, DEFAULT_FORMAT_ON_SAVE):
 		return
 
 	var gds := resource as GDScript
@@ -449,14 +451,14 @@ func _restore_code_edit_info(prev_data: Dictionary, func_get_line: Callable, fun
 			down_line += 1
 
 
-func _get_setting(key: String) -> Variant:
+func _get_setting(key: String, default: Variant) -> Variant:
 	var settings := _get_project_specific_settings()
 	if settings.get(_SETTING_CUSTOM_SETTINGS_ENABLED):
 		return settings.get(key)
 	var editor_settings := _get_editor_interface().get_editor_settings()
 	if editor_settings.has_setting(key):
 		return editor_settings.get_setting(key)
-	return 175
+	return default
 
 
 func _format_code(script_path: String, code: String, formatted: Array) -> bool:
@@ -469,8 +471,8 @@ func _format_code(script_path: String, code: String, formatted: Array) -> bool:
 	f.close()
 
 	var output := []
-	var args := [ProjectSettings.globalize_path(tmp_file), "--line-length=%d" % _get_setting(SETTING_LINE_LENGTH)]
-	if _get_setting(SETTING_FAST_BUT_UNSAFE):
+	var args := [ProjectSettings.globalize_path(tmp_file), "--line-length=%d" % _get_setting(SETTING_LINE_LENGTH, DEFAULT_LINE_LENGTH)]
+	if _get_setting(SETTING_FAST_BUT_UNSAFE, DEFAULT_FAST_BUT_UNSAFE):
 		args.push_back("--fast")
 	var err := OS.execute(_get_gdformat_command(), args, output)
 	if err == OK:
