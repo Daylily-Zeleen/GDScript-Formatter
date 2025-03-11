@@ -8,10 +8,15 @@
 
 config_version=5
 
+[GDScript_Formatter]
+
+custom_settings_enabled=true
+format_on_save=true
+
 [application]
 
 config/name="GDScript-Formatter"
-config/features=PackedStringArray("4.2", "GL Compatibility")
+config/features=PackedStringArray("4.1", "GL Compatibility")
 config/icon="res://icon.png"
 
 [editor_plugins]

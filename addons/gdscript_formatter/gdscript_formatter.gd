@@ -138,8 +138,12 @@ func _enter_tree() -> void:
 
 	project_settings_changed.connect(_on_project_settings_changed)
 
+	resource_saved.connect(_on_resource_saved)
+
 
 func _exit_tree() -> void:
+	resource_saved.disconnect(_on_resource_saved)
+
 	_remove_format_tool_item_and_command()
 	if _has_install_update_tool_item:
 		remove_tool_menu_item("GDScriptFormatter: Install/Update gdtoolkit")
