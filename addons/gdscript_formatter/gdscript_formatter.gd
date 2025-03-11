@@ -81,7 +81,7 @@ func _init() -> void:
 		editor_settings.set_setting(SETTING_PIP_COMMAND, DEFAULT_PIP_COMMAND)
 
 	# For compatibility, load preference from "format_preference.tres".
-	var preference_res_file = (get_script() as Resource).resource_path.get_base_dir().path_join("format_preference.tres")
+	var preference_res_file := (get_script() as Resource).resource_path.get_base_dir().path_join("format_preference.tres")
 	if ResourceLoader.exists(preference_res_file):
 		var old_preference := ResourceLoader.load(preference_res_file, "", ResourceLoader.CACHE_MODE_IGNORE)
 		if "line_length" in old_preference:
@@ -137,7 +137,6 @@ func _enter_tree() -> void:
 		ProjectSettings.set_initial_value(SETTING_FAST_BUT_UNSAFE, DEFAULT_FAST_BUT_UNSAFE)
 
 	project_settings_changed.connect(_on_project_settings_changed)
-
 	resource_saved.connect(_on_resource_saved)
 
 
@@ -169,7 +168,7 @@ func _create_default_shortcut() -> Shortcut:
 	default_shortcut.shift_pressed = true
 	default_shortcut.alt_pressed = true
 
-	var shortcut = Shortcut.new()
+	var shortcut := Shortcut.new()
 	shortcut.events.push_back(default_shortcut)
 
 	return shortcut
@@ -223,7 +222,7 @@ func update_shortcut() -> void:
 
 	_connection_list.clear()
 
-	var shortcut = _get_shortcut()
+	var shortcut := _get_shortcut()
 	if is_instance_valid(shortcut):
 		for event in shortcut.events:
 			event = event as InputEvent
@@ -466,7 +465,7 @@ func _get_setting(key: String, default: Variant) -> Variant:
 
 
 func _format_code(script_path: String, code: String, formatted: Array) -> bool:
-	const tmp_file = "res://addons/gdscript_formatter/.tmp.gd"
+	const tmp_file := "res://addons/gdscript_formatter/.tmp.gd"
 	var f := FileAccess.open(tmp_file, FileAccess.WRITE)
 	if not is_instance_valid(f):
 		printerr("GDScript Formatter Error: Can't create tmp file.")
