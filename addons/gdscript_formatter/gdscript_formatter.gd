@@ -59,6 +59,9 @@ const DEFAULT_PIP_COMMAND = "pip"
 const _SETTING_CUSTOM_SETTINGS_ENABLED = "GDScript_Formatter/custom_settings_enabled"
 const _PROJECT_SPECIFIC_SETTINGS = ".preference"
 
+const _SETTING_INDENT_TYPE = "text_editor/behavior/indent/type"
+const _SETTING_INDENT_SIZE = "text_editor/behavior/indent/size"
+
 var _has_format_tool_item: bool = false
 var _has_install_update_tool_item: bool = false
 var _install_task_id: int = -1
@@ -475,6 +478,9 @@ func _format_code(script_path: String, code: String, formatted: Array) -> bool:
 
 	var output := []
 	var args := [ProjectSettings.globalize_path(tmp_file), "--line-length=%d" % _get_setting(SETTING_LINE_LENGTH, DEFAULT_LINE_LENGTH)]
+	var indent_space_size := _get_indent_space_size()
+	if indent_space_size > 0:
+		args.push_back("--use-spaces=%s" % indent_space_size)
 	if _get_setting(SETTING_FAST_BUT_UNSAFE, DEFAULT_FAST_BUT_UNSAFE):
 		args.push_back("--fast")
 	var err := OS.execute(_get_gdformat_command(), args, output)
@@ -501,6 +507,13 @@ func _get_pip_command() -> String:
 
 func _get_shortcut() -> Shortcut:
 	return _get_editor_interface().get_editor_settings().get_setting(SETTING_SHORTCUT)
+
+
+func _get_indent_space_size() -> int:
+	var editor_settings := _get_editor_interface().get_editor_settings()
+	if editor_settings.get_setting(_SETTING_INDENT_TYPE) == 0:
+		return 0
+	return editor_settings.get_setting(_SETTING_INDENT_SIZE)
 
 
 func _print_warning(str: String) -> void:
